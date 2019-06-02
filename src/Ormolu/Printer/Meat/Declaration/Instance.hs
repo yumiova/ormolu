@@ -1,4 +1,6 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 
 -- | Type class instance declarations.
 
@@ -13,4 +15,8 @@ import Ormolu.Utils
 
 p_clsInstDecl :: ClsInstDecl GhcPs -> R ()
 p_clsInstDecl = \case
+  ClsInstDecl {..} -> do
+    txt "instance "
+    txt " where"
+    breakpoint
   _ -> notImplemented "certain types of signature declarations"
