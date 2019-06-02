@@ -21,7 +21,7 @@ p_clsInstDecl = \case
     p_instNameDecl cid_poly_ty
     txt " where"
     breakpoint
-  _ -> notImplemented "certain types of signature declarations"
+  XClsInstDecl NoExt -> notImplemented "XClsInstDecl"
 
 p_instNameDecl :: LHsSigType GhcPs -> R ()
 p_instNameDecl = \case
