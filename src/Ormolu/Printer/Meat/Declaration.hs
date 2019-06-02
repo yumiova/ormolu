@@ -11,6 +11,7 @@ where
 import GHC
 import Ormolu.Printer.Combinators
 import Ormolu.Printer.Meat.Declaration.Data
+import Ormolu.Printer.Meat.Declaration.Instance
 import Ormolu.Printer.Meat.Declaration.Signature
 import Ormolu.Printer.Meat.Declaration.Type
 import Ormolu.Printer.Meat.Declaration.TypeFamily
@@ -34,4 +35,5 @@ p_tyClDecl = \case
 
 p_instDecl :: InstDecl GhcPs -> R ()
 p_instDecl = \case
+  ClsInstD NoExt x -> p_clsInstDecl x
   _ -> notImplemented "certain kinds of declarations"
