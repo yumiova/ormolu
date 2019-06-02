@@ -23,7 +23,7 @@ p_clsInstDecl = \case
     p_hsSigType cid_poly_ty
     txt " where"
     breakpoint
-    forM_ cid_binds $ \c -> inci (located c p_valDecl)
+    inci $ forM_ cid_binds $ \c -> located c p_valDecl
   XClsInstDecl NoExt -> notImplemented "XClsInstDecl"
 
 p_hsSigType :: LHsSigType GhcPs -> R ()
