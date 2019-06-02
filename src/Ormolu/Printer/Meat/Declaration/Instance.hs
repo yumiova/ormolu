@@ -9,8 +9,10 @@ module Ormolu.Printer.Meat.Declaration.Instance
   )
 where
 
+import Control.Monad
 import GHC
 import Ormolu.Printer.Combinators
+import Ormolu.Printer.Meat.Declaration.Value
 import Ormolu.Printer.Meat.Type
 import Ormolu.Utils
 
@@ -21,6 +23,7 @@ p_clsInstDecl = \case
     p_instNameDecl cid_poly_ty
     txt " where"
     breakpoint
+    forM_ cid_binds $ \c -> inci (located c p_valDecl)
   XClsInstDecl NoExt -> notImplemented "XClsInstDecl"
 
 p_instNameDecl :: LHsSigType GhcPs -> R ()
