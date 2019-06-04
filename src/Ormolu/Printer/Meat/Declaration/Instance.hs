@@ -17,6 +17,7 @@ import Data.List (sortBy)
 import GHC
 import Ormolu.Printer.Combinators
 import Ormolu.Printer.Meat.Declaration.Signature
+import Ormolu.Printer.Meat.Declaration.TypeFamily
 import Ormolu.Printer.Meat.Declaration.Value
 import Ormolu.Printer.Meat.Type
 import Ormolu.Utils
@@ -38,11 +39,6 @@ p_clsInstDecl = \case
 
 p_tyFamInstDecl :: TyFamInstDecl GhcPs -> R ()
 p_tyFamInstDecl = \case
-  TyFamInstDecl HsIB {..} -> do
+  TyFamInstDecl {..} -> do
     txt "type instance "
-    case hsib_body of
-      FamEqn {..} -> do
-        atom feqn_tycon
-        pure ()
-      XFamEqn NoExt -> notImplemented "XFamEqn"
-  TyFamInstDecl (XHsImplicitBndrs NoExt) -> notImplemented "XHsImplicitBndrs"
+    p_tyFamInstEqn tfid_eqn
