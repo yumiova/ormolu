@@ -6,6 +6,7 @@
 
 module Ormolu.Printer.Meat.Declaration.Instance
   ( p_clsInstDecl
+  , p_tyFamInstDecl
   )
 where
 
@@ -34,3 +35,7 @@ p_clsInstDecl = \case
         decls = sortBy (compare `on` fst) (toList binds <> sigs)
     inci $ traverse_ snd decls
   XClsInstDecl NoExt -> notImplemented "XClsInstDecl"
+
+p_tyFamInstDecl :: TyFamInstDecl GhcPs -> R ()
+p_tyFamInstDecl = \case
+  TyFamInstDecl _ -> notImplemented "TyFamInstDecl"

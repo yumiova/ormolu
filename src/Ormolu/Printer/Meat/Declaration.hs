@@ -36,4 +36,5 @@ p_tyClDecl = \case
 p_instDecl :: InstDecl GhcPs -> R ()
 p_instDecl = \case
   ClsInstD NoExt x -> p_clsInstDecl x
+  TyFamInstD NoExt x -> p_tyFamInstDecl x
   _ -> notImplemented "certain kinds of declarations"
