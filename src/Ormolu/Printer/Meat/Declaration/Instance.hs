@@ -9,7 +9,10 @@ module Ormolu.Printer.Meat.Declaration.Instance
   )
 where
 
-import Control.Monad
+import Control.Arrow
+import Data.Foldable
+import Data.Function
+import Data.List (sortBy)
 import GHC
 import Ormolu.Printer.Combinators
 import Ormolu.Printer.Meat.Declaration.Value
@@ -25,5 +28,7 @@ p_clsInstDecl = \case
       XHsImplicitBndrs NoExt -> notImplemented "XHsImplicitBndrs"
     txt " where"
     breakpoint
-    inci $ forM_ cid_binds $ \c -> located c p_valDecl
+    let binds = (getLoc &&& located' p_valDecl) <$> cid_binds
+        decls = sortBy (compare `on` fst) (toList binds)
+    inci $ traverse_ snd decls
   XClsInstDecl NoExt -> notImplemented "XClsInstDecl"
