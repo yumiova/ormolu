@@ -20,13 +20,10 @@ p_clsInstDecl :: ClsInstDecl GhcPs -> R ()
 p_clsInstDecl = \case
   ClsInstDecl {..} -> do
     txt "instance "
-    p_hsSigType cid_poly_ty
+    case cid_poly_ty of
+      HsIB {..} -> located hsib_body p_hsType
+      XHsImplicitBndrs NoExt -> notImplemented "XHsImplicitBndrs"
     txt " where"
     breakpoint
     inci $ forM_ cid_binds $ \c -> located c p_valDecl
   XClsInstDecl NoExt -> notImplemented "XClsInstDecl"
-
-p_hsSigType :: LHsSigType GhcPs -> R ()
-p_hsSigType = \case
-  HsIB {..} -> located hsib_body p_hsType
-  XHsImplicitBndrs NoExt -> notImplemented "XHsImplicitBndrs"
