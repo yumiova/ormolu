@@ -38,4 +38,11 @@ p_clsInstDecl = \case
 
 p_tyFamInstDecl :: TyFamInstDecl GhcPs -> R ()
 p_tyFamInstDecl = \case
-  TyFamInstDecl _ -> notImplemented "TyFamInstDecl"
+  TyFamInstDecl HsIB {..} -> do
+    txt "type instance "
+    case hsib_body of
+      FamEqn {..} -> do
+        atom feqn_tycon
+        pure ()
+      XFamEqn NoExt -> notImplemented "XFamEqn"
+  TyFamInstDecl (XHsImplicitBndrs NoExt) -> notImplemented "XHsImplicitBndrs"
