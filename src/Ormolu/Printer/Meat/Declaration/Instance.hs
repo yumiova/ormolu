@@ -15,6 +15,7 @@ import Data.Function
 import Data.List (sortBy)
 import GHC
 import Ormolu.Printer.Combinators
+import Ormolu.Printer.Meat.Declaration.Signature
 import Ormolu.Printer.Meat.Declaration.Value
 import Ormolu.Printer.Meat.Type
 import Ormolu.Utils
@@ -29,6 +30,7 @@ p_clsInstDecl = \case
     txt " where"
     breakpoint
     let binds = (getLoc &&& located' p_valDecl) <$> cid_binds
-        decls = sortBy (compare `on` fst) (toList binds)
+        sigs = (getLoc &&& located' p_sigDecl) <$> cid_sigs
+        decls = sortBy (compare `on` fst) (toList binds <> sigs)
     inci $ traverse_ snd decls
   XClsInstDecl NoExt -> notImplemented "XClsInstDecl"
