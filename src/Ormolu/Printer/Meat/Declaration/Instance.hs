@@ -6,6 +6,7 @@
 
 module Ormolu.Printer.Meat.Declaration.Instance
   ( p_clsInstDecl
+  , FamilyStyle (Associate, Free)
   , p_tyFamInstDecl
   )
 where
@@ -31,7 +32,9 @@ p_clsInstDecl = \case
       XHsImplicitBndrs NoExt -> notImplemented "XHsImplicitBndrs"
     let binds = (getLoc &&& located' p_valDecl) <$> cid_binds
         sigs = (getLoc &&& located' p_sigDecl) <$> cid_sigs
-        decls = sortBy (compare `on` fst) (toList binds <> sigs)
+        tyfam_insts =
+          (getLoc &&& located' (p_tyFamInstDecl Associate)) <$> cid_tyfam_insts
+        decls = sortBy (compare `on` fst) (toList binds <> sigs <> tyfam_insts)
     if not (null decls)
       then do
         txt " where"
@@ -41,8 +44,14 @@ p_clsInstDecl = \case
         newline
   XClsInstDecl NoExt -> notImplemented "XClsInstDecl"
 
-p_tyFamInstDecl :: TyFamInstDecl GhcPs -> R ()
-p_tyFamInstDecl = \case
+data FamilyStyle
+  = Associate
+  | Free
+
+p_tyFamInstDecl :: FamilyStyle -> TyFamInstDecl GhcPs -> R ()
+p_tyFamInstDecl style = \case
   TyFamInstDecl {..} -> do
-    txt "type instance "
+    txt $ case style of
+      Associate -> "type "
+      Free -> "type instance "
     p_tyFamInstEqn tfid_eqn
