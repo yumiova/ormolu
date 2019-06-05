@@ -27,7 +27,7 @@ p_clsInstDecl = \case
   ClsInstDecl {..} -> do
     txt "instance "
     case cid_poly_ty of
-      HsIB {..} -> located hsib_body p_hsType
+      HsIB {..} -> sitcc (located hsib_body p_hsType)
       XHsImplicitBndrs NoExt -> notImplemented "XHsImplicitBndrs"
     txt " where"
     breakpoint
