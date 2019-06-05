@@ -29,12 +29,16 @@ p_clsInstDecl = \case
     case cid_poly_ty of
       HsIB {..} -> sitcc (located hsib_body p_hsType)
       XHsImplicitBndrs NoExt -> notImplemented "XHsImplicitBndrs"
-    txt " where"
-    breakpoint
     let binds = (getLoc &&& located' p_valDecl) <$> cid_binds
         sigs = (getLoc &&& located' p_sigDecl) <$> cid_sigs
         decls = sortBy (compare `on` fst) (toList binds <> sigs)
-    inci $ traverse_ snd decls
+    if not (null decls)
+      then do
+        txt " where"
+        breakpoint
+        inci $ traverse_ snd decls
+      else do
+        newline
   XClsInstDecl NoExt -> notImplemented "XClsInstDecl"
 
 p_tyFamInstDecl :: TyFamInstDecl GhcPs -> R ()
