@@ -11,6 +11,7 @@ module Ormolu.Printer.Meat.Declaration.Instance
   )
 where
 
+import BasicTypes
 import Control.Arrow
 import Data.Foldable
 import Data.Function
@@ -27,6 +28,12 @@ p_clsInstDecl :: ClsInstDecl GhcPs -> R ()
 p_clsInstDecl = \case
   ClsInstDecl {..} -> do
     txt "instance "
+    case unLoc <$> cid_overlap_mode of
+      Just Overlappable {} -> txt "{-# OVERLAPPABLE #-} "
+      Just Overlapping {} -> txt "{-# OVERLAPPING #-} "
+      Just Overlaps {} -> txt "{-# OVERLAPS #-} "
+      Just Incoherent {} -> txt "{-# INCOHERENT #-} "
+      _ -> pure ()
     case cid_poly_ty of
       HsIB {..} -> sitcc (located hsib_body p_hsType)
       XHsImplicitBndrs NoExt -> notImplemented "XHsImplicitBndrs"
