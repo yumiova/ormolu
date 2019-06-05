@@ -55,3 +55,4 @@ p_tyFamInstDecl style = \case
       Associate -> "type "
       Free -> "type instance "
     p_tyFamInstEqn tfid_eqn
+    newline
