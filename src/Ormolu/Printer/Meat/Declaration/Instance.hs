@@ -37,6 +37,10 @@ p_clsInstDecl = \case
     case cid_poly_ty of
       HsIB {..} -> sitcc (located hsib_body p_hsType)
       XHsImplicitBndrs NoExt -> notImplemented "XHsImplicitBndrs"
+    -- GHC's AST does not necessarily store each kind of element in source
+    -- location order. This happens because different declarations are stored in
+    -- different lists. Consequently, to get all the declarations in proper
+    -- order, they need to be manually sorted.
     let binds = (getLoc &&& located' p_valDecl) <$> cid_binds
         sigs = (getLoc &&& located' p_sigDecl) <$> cid_sigs
         tyfam_insts =
