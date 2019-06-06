@@ -50,17 +50,21 @@ p_pat = \case
           inci $ velt' (located' p_pat <$> xs)
       RecCon (HsRecFields fields dotdot) -> do
         p_rdrName pat
-        case dotdot of
-          Nothing -> txt " {..}"
-          Just _ -> do
-            braces $ velt (withSep comma (located' p_hsRecField) fields)
+        breakpoint
+        let f = \case
+              Nothing -> txt ".."
+              Just x -> located x p_hsRecField
+        inci . braces . velt . withSep comma f $ case dotdot of
+          Nothing ->
+            Just <$> fields
+          Just n -> do
+            (Just <$> take n fields) ++ [Nothing]
       InfixCon x y -> do
         located x p_pat
+        space
+        p_rdrName pat
         breakpoint
-        inci $ do
-          p_rdrName pat
-          space
-          located y p_pat
+        inci (located y p_pat)
   ConPatOut {} -> notImplemented "ConPatOut"
   ViewPat {} -> notImplemented "ViewPat"
   SplicePat {} -> notImplemented "SplicePat"
@@ -72,6 +76,10 @@ p_pat = \case
   XPat NoExt -> notImplemented "XPat"
 
 p_hsRecField :: HsRecField' (FieldOcc GhcPs) (LPat GhcPs) -> R ()
-p_hsRecField HsRecField {..} =
+p_hsRecField HsRecField {..} = do
   located hsRecFieldLbl $ \x ->
     p_rdrName (rdrNameFieldOcc x)
+  unless hsRecPun $ do
+    txt " ="
+    breakpoint
+    inci (located hsRecFieldArg p_pat)
