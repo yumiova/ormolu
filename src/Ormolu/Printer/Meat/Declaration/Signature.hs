@@ -24,7 +24,7 @@ p_sigDecl' :: Sig GhcPs -> R ()
 p_sigDecl' = \case
   TypeSig NoExt names hswc -> p_typeSig names hswc
   ClassOpSig NoExt def names hsib -> do
-    when def (txt "default")
+    when def (txt "default ")
     p_typeSig names HsWC {hswc_ext = NoExt, hswc_body = hsib}
   _ -> notImplemented "certain types of signature declarations"
 
