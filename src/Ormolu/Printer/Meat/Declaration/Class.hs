@@ -18,10 +18,14 @@ import RdrName (RdrName (..))
 import SrcLoc (Located)
 
 p_classDecl :: LHsContext GhcPs -> Located RdrName -> LHsQTyVars GhcPs -> R ()
-p_classDecl _ name tvars = do
+p_classDecl ctx name tvars = do
   let HsQTvs {..} = tvars
   txt "class "
   sitcc $ do
+    unless (null (unLoc ctx)) $ do
+      located ctx p_hsContext
+      breakpoint
+      txt "=> "
     p_rdrName name
     unless (null hsq_explicit) space
     spaceSep (located' p_hsTyVarBndr) hsq_explicit
