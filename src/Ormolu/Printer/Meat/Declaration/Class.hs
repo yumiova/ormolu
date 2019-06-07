@@ -9,6 +9,7 @@ module Ormolu.Printer.Meat.Declaration.Class
   )
 where
 
+import Class
 import Control.Arrow
 import Control.Monad
 import Data.Foldable
@@ -27,10 +28,11 @@ p_classDecl
   :: LHsContext GhcPs
   -> Located RdrName
   -> LHsQTyVars GhcPs
+  -> [Located (FunDep (Located RdrName))]
   -> [LSig GhcPs]
   -> LHsBinds GhcPs
   -> R ()
-p_classDecl ctx name tvars csigs cdefs = do
+p_classDecl ctx name tvars _ csigs cdefs = do
   let HsQTvs {..} = tvars
   txt "class "
   sitcc $ do
