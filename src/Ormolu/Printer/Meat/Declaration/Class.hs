@@ -22,7 +22,7 @@ import Ormolu.Printer.Meat.Common
 import Ormolu.Printer.Meat.Type
 import GHC
 import RdrName (RdrName (..))
-import SrcLoc (Located)
+import SrcLoc (Located, combineSrcSpans)
 
 p_classDecl
   :: LHsContext GhcPs
@@ -32,7 +32,7 @@ p_classDecl
   -> [LSig GhcPs]
   -> LHsBinds GhcPs
   -> R ()
-p_classDecl ctx name tvars _ csigs cdefs = do
+p_classDecl ctx name tvars fdeps csigs cdefs = do
   let HsQTvs {..} = tvars
   txt "class "
   sitcc $ do
@@ -43,6 +43,12 @@ p_classDecl ctx name tvars _ csigs cdefs = do
     p_rdrName name
     unless (null hsq_explicit) space
     spaceSep (located' p_hsTyVarBndr) hsq_explicit
+    unless (null fdeps) $ do
+      let combinedSpans = foldr (combineSrcSpans . getLoc) noSrcSpan fdeps
+      switchLayout combinedSpans $ do
+        breakpoint
+        txt "| "
+        velt $ withSep comma (located' p_funDep) fdeps
   -- GHC's AST does not necessarily store each kind of element in source
   -- location order. This happens because different declarations are stored in
   -- different lists. Consequently, to get all the declarations in proper order,
@@ -56,3 +62,9 @@ p_classDecl ctx name tvars _ csigs cdefs = do
       newline
       inci (sequence_ decls)
     else newline
+
+p_funDep :: FunDep (Located RdrName) -> R ()
+p_funDep (before, after) = do
+  spaceSep p_rdrName before
+  txt " -> "
+  spaceSep p_rdrName after
