@@ -21,7 +21,8 @@ p_classDecl :: LHsContext GhcPs -> Located RdrName -> LHsQTyVars GhcPs -> R ()
 p_classDecl _ name tvars = do
   let HsQTvs {..} = tvars
   txt "class "
-  p_rdrName name
-  unless (null hsq_explicit) space
-  spaceSep (located' p_hsTyVarBndr) hsq_explicit
+  sitcc $ do
+    p_rdrName name
+    unless (null hsq_explicit) space
+    spaceSep (located' p_hsTyVarBndr) hsq_explicit
   newline
