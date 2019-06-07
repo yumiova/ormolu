@@ -11,10 +11,12 @@ where
 
 import Control.Arrow
 import Control.Monad
+import Data.Foldable
 import Data.Function
 import Data.List (sortBy)
 import Ormolu.Printer.Combinators
 import Ormolu.Printer.Meat.Declaration.Signature
+import Ormolu.Printer.Meat.Declaration.Value
 import Ormolu.Printer.Meat.Common
 import Ormolu.Printer.Meat.Type
 import GHC
@@ -28,7 +30,7 @@ p_classDecl
   -> [LSig GhcPs]
   -> LHsBinds GhcPs
   -> R ()
-p_classDecl ctx name tvars csigs _ = do
+p_classDecl ctx name tvars csigs cdefs = do
   let HsQTvs {..} = tvars
   txt "class "
   sitcc $ do
@@ -44,7 +46,8 @@ p_classDecl ctx name tvars csigs _ = do
   -- different lists. Consequently, to get all the declarations in proper order,
   -- they need to be manually sorted.
   let sigs = (getLoc &&& located' p_sigDecl) <$> csigs
-      decls = snd <$> sortBy (compare `on` fst) sigs
+      defs = (getLoc &&& located' p_valDecl) <$> cdefs
+      decls = snd <$> sortBy (compare `on` fst) (sigs <> toList defs)
   if not (null decls)
     then do
       txt " where"
