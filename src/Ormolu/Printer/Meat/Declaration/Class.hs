@@ -26,8 +26,9 @@ p_classDecl
   -> Located RdrName
   -> LHsQTyVars GhcPs
   -> [LSig GhcPs]
+  -> LHsBinds GhcPs
   -> R ()
-p_classDecl ctx name tvars csigs = do
+p_classDecl ctx name tvars csigs _ = do
   let HsQTvs {..} = tvars
   txt "class "
   sitcc $ do
