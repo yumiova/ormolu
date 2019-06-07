@@ -10,6 +10,7 @@ where
 
 import GHC
 import Ormolu.Printer.Combinators
+import Ormolu.Printer.Meat.Declaration.Class
 import Ormolu.Printer.Meat.Declaration.Data
 import Ormolu.Printer.Meat.Declaration.Signature
 import Ormolu.Printer.Meat.Declaration.Type
@@ -29,4 +30,5 @@ p_tyClDecl = \case
   FamDecl NoExt x -> p_famDecl x
   SynDecl {..} -> p_synDecl tcdLName tcdTyVars tcdRhs
   DataDecl {..} -> p_dataDecl tcdLName tcdTyVars tcdDataDefn
+  ClassDecl {..} -> p_classDecl tcdLName tcdTyVars
   _ -> notImplemented "certain kinds of declarations"
