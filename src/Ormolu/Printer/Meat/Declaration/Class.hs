@@ -9,16 +9,23 @@ module Ormolu.Printer.Meat.Declaration.Class
   )
 where
 
+import Control.Arrow
 import Control.Monad
 import Ormolu.Printer.Combinators
+import Ormolu.Printer.Meat.Declaration.Signature
 import Ormolu.Printer.Meat.Common
 import Ormolu.Printer.Meat.Type
 import GHC
 import RdrName (RdrName (..))
 import SrcLoc (Located)
 
-p_classDecl :: LHsContext GhcPs -> Located RdrName -> LHsQTyVars GhcPs -> R ()
-p_classDecl ctx name tvars = do
+p_classDecl
+  :: LHsContext GhcPs
+  -> Located RdrName
+  -> LHsQTyVars GhcPs
+  -> [LSig GhcPs]
+  -> R ()
+p_classDecl ctx name tvars _ = do
   let HsQTvs {..} = tvars
   txt "class "
   sitcc $ do
