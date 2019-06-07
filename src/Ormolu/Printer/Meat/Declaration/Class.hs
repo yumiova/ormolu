@@ -11,6 +11,8 @@ where
 
 import Control.Arrow
 import Control.Monad
+import Data.Function
+import Data.List (sortBy)
 import Ormolu.Printer.Combinators
 import Ormolu.Printer.Meat.Declaration.Signature
 import Ormolu.Printer.Meat.Common
@@ -25,7 +27,7 @@ p_classDecl
   -> LHsQTyVars GhcPs
   -> [LSig GhcPs]
   -> R ()
-p_classDecl ctx name tvars _ = do
+p_classDecl ctx name tvars csigs = do
   let HsQTvs {..} = tvars
   txt "class "
   sitcc $ do
@@ -36,4 +38,15 @@ p_classDecl ctx name tvars _ = do
     p_rdrName name
     unless (null hsq_explicit) space
     spaceSep (located' p_hsTyVarBndr) hsq_explicit
-  newline
+  -- GHC's AST does not necessarily store each kind of element in source
+  -- location order. This happens because different declarations are stored in
+  -- different lists. Consequently, to get all the declarations in proper order,
+  -- they need to be manually sorted.
+  let sigs = (getLoc &&& located' p_sigDecl) <$> csigs
+      decls = snd <$> sortBy (compare `on` fst) sigs
+  if not (null decls)
+    then do
+      txt " where"
+      newline
+      inci (sequence_ decls)
+    else newline
