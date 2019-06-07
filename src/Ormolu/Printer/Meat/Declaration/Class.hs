@@ -17,8 +17,8 @@ import GHC
 import RdrName (RdrName (..))
 import SrcLoc (Located)
 
-p_classDecl :: Located RdrName -> LHsQTyVars GhcPs -> R ()
-p_classDecl name tvars = do
+p_classDecl :: LHsContext GhcPs -> Located RdrName -> LHsQTyVars GhcPs -> R ()
+p_classDecl _ name tvars = do
   let HsQTvs {..} = tvars
   txt "class "
   p_rdrName name

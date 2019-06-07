@@ -30,5 +30,5 @@ p_tyClDecl = \case
   FamDecl NoExt x -> p_famDecl x
   SynDecl {..} -> p_synDecl tcdLName tcdTyVars tcdRhs
   DataDecl {..} -> p_dataDecl tcdLName tcdTyVars tcdDataDefn
-  ClassDecl {..} -> p_classDecl tcdLName tcdTyVars
+  ClassDecl {..} -> p_classDecl tcdCtxt tcdLName tcdTyVars
   _ -> notImplemented "certain kinds of declarations"
