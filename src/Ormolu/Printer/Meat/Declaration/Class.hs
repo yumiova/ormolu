@@ -24,3 +24,4 @@ p_classDecl name tvars = do
   p_rdrName name
   unless (null hsq_explicit) space
   spaceSep (located' p_hsTyVarBndr) hsq_explicit
+  newline
