@@ -48,7 +48,7 @@ p_classDecl ctx name tvars fdeps csigs cdefs = do
       switchLayout combinedSpans $ do
         breakpoint
         txt "| "
-        velt $ withSep comma (located' p_funDep) fdeps
+        velt (withSep comma (located' p_funDep) fdeps)
   -- GHC's AST does not necessarily store each kind of element in source
   -- location order. This happens because different declarations are stored in
   -- different lists. Consequently, to get all the declarations in proper order,
