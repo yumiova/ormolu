@@ -21,6 +21,7 @@ import Ormolu.Printer.Meat.Declaration.Value
 import Ormolu.Printer.Meat.Declaration.TypeFamily
 import Ormolu.Printer.Meat.Common
 import Ormolu.Printer.Meat.Type
+import Ormolu.Utils
 import GHC
 import RdrName (RdrName (..))
 import SrcLoc (Located, combineSrcSpans)
@@ -35,7 +36,7 @@ p_classDecl
   -> [LFamilyDecl GhcPs]
   -> [LTyFamDefltEqn GhcPs]
   -> R ()
-p_classDecl ctx name tvars fdeps csigs cdefs cats _ = do
+p_classDecl ctx name tvars fdeps csigs cdefs cats catdefs = do
   let HsQTvs {..} = tvars
   txt "class "
   sitcc $ do
@@ -59,9 +60,12 @@ p_classDecl ctx name tvars fdeps csigs cdefs cats _ = do
   let sigs = (getLoc &&& located' p_sigDecl) <$> csigs
       defs = (getLoc &&& located' p_valDecl) <$> cdefs
       tyfam_decls = (getLoc &&& located' (p_famDecl Associated)) <$> cats
+      tyfam_defs = (getLoc &&& located' p_famDefDecl) <$> catdefs
       decls =
         snd <$>
-        sortBy (compare `on` fst) (sigs <> toList defs <> tyfam_decls)
+        sortBy
+          (compare `on` fst)
+          (sigs <> toList defs <> tyfam_decls <> tyfam_defs)
   if not (null decls)
     then do
       txt " where"
@@ -69,8 +73,32 @@ p_classDecl ctx name tvars fdeps csigs cdefs cats _ = do
       inci (sequence_ decls)
     else newline
 
+p_famDefDecl :: TyFamDefltEqn GhcPs -> R ()
+p_famDefDecl FamEqn {..} = do
+  txt "type "
+  let eqn = FamEqn { feqn_pats = tyVarsToTypes feqn_pats, .. }
+      hsib = HsIB { hsib_ext = NoExt, hsib_body = eqn }
+  p_tyFamInstEqn hsib
+  newline
+
 p_funDep :: FunDep (Located RdrName) -> R ()
 p_funDep (before, after) = do
   spaceSep p_rdrName before
   txt " -> "
   spaceSep p_rdrName after
+
+----------------------------------------------------------------------------
+-- Helpers
+
+tyVarsToTypes :: LHsQTyVars GhcPs -> [LHsType GhcPs]
+tyVarsToTypes = \case
+  HsQTvs {..} -> fmap tyVarToType <$> hsq_explicit
+  XLHsQTyVars {} -> notImplemented "XLHsQTyVars"
+
+tyVarToType :: HsTyVarBndr GhcPs -> HsType GhcPs
+tyVarToType = \case
+  UserTyVar NoExt tvar -> HsTyVar NoExt NotPromoted tvar
+  KindedTyVar NoExt tvar kind ->
+    HsParTy NoExt $ noLoc $
+    HsKindSig NoExt (noLoc (HsTyVar NoExt NotPromoted tvar)) kind
+  XTyVarBndr {} -> notImplemented "XTyVarBndr"
