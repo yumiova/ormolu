@@ -35,7 +35,7 @@ p_tyClDecl = \case
   DataDecl {..} ->
     p_dataDecl Associated tcdLName (tyVarsToTypes tcdTyVars) tcdDataDefn
   ClassDecl {..} ->
-    p_classDecl tcdCtxt tcdLName tcdTyVars tcdFDs tcdSigs tcdMeths
+    p_classDecl tcdCtxt tcdLName tcdTyVars tcdFDs tcdSigs tcdMeths tcdATs
   _ -> notImplemented "certain kinds of declarations"
 
 p_instDecl :: InstDecl GhcPs -> R ()

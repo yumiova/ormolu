@@ -18,6 +18,7 @@ import Data.List (sortBy)
 import Ormolu.Printer.Combinators
 import Ormolu.Printer.Meat.Declaration.Signature
 import Ormolu.Printer.Meat.Declaration.Value
+import Ormolu.Printer.Meat.Declaration.TypeFamily
 import Ormolu.Printer.Meat.Common
 import Ormolu.Printer.Meat.Type
 import GHC
@@ -31,8 +32,9 @@ p_classDecl
   -> [Located (FunDep (Located RdrName))]
   -> [LSig GhcPs]
   -> LHsBinds GhcPs
+  -> [LFamilyDecl GhcPs]
   -> R ()
-p_classDecl ctx name tvars fdeps csigs cdefs = do
+p_classDecl ctx name tvars fdeps csigs cdefs _ = do
   let HsQTvs {..} = tvars
   txt "class "
   sitcc $ do
