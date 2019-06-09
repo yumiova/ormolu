@@ -30,7 +30,7 @@ p_hsDecl = \case
 
 p_tyClDecl :: TyClDecl GhcPs -> R ()
 p_tyClDecl = \case
-  FamDecl NoExt x -> p_famDecl x
+  FamDecl NoExt x -> p_famDecl Free x
   SynDecl {..} -> p_synDecl tcdLName tcdTyVars tcdRhs
   DataDecl {..} ->
     p_dataDecl Associated tcdLName (tyVarsToTypes tcdTyVars) tcdDataDefn
