@@ -44,7 +44,7 @@ p_tyClDecl = \case
       tcdMeths
       tcdATs
       tcdATDefs
-  _ -> notImplemented "certain kinds of declarations"
+  XTyClDecl {} -> notImplemented "XTyClDecl"
 
 p_instDecl :: InstDecl GhcPs -> R ()
 p_instDecl = \case
