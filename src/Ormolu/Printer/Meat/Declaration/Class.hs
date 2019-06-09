@@ -34,7 +34,7 @@ p_classDecl
   -> LHsBinds GhcPs
   -> [LFamilyDecl GhcPs]
   -> R ()
-p_classDecl ctx name tvars fdeps csigs cdefs _ = do
+p_classDecl ctx name tvars fdeps csigs cdefs cats = do
   let HsQTvs {..} = tvars
   txt "class "
   sitcc $ do
@@ -57,7 +57,10 @@ p_classDecl ctx name tvars fdeps csigs cdefs _ = do
   -- they need to be manually sorted.
   let sigs = (getLoc &&& located' p_sigDecl) <$> csigs
       defs = (getLoc &&& located' p_valDecl) <$> cdefs
-      decls = snd <$> sortBy (compare `on` fst) (sigs <> toList defs)
+      tyfam_decls = (getLoc &&& located' (p_famDecl Associated)) <$> cats
+      decls =
+        snd <$>
+        sortBy (compare `on` fst) (sigs <> toList defs <> tyfam_decls)
   if not (null decls)
     then do
       txt " where"
