@@ -80,6 +80,7 @@ p_famDefDecl FamEqn {..} = do
       hsib = HsIB { hsib_ext = NoExt, hsib_body = eqn }
   p_tyFamInstEqn hsib
   newline
+p_famDefDecl XFamEqn {} = notImplemented "XFamEqn"
 
 p_funDep :: FunDep (Located RdrName) -> R ()
 p_funDep (before, after) = do
