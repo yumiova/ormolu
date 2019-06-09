@@ -33,8 +33,9 @@ p_classDecl
   -> [LSig GhcPs]
   -> LHsBinds GhcPs
   -> [LFamilyDecl GhcPs]
+  -> [LTyFamDefltEqn GhcPs]
   -> R ()
-p_classDecl ctx name tvars fdeps csigs cdefs cats = do
+p_classDecl ctx name tvars fdeps csigs cdefs cats _ = do
   let HsQTvs {..} = tvars
   txt "class "
   sitcc $ do
