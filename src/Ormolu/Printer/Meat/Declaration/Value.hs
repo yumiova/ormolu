@@ -4,6 +4,7 @@
 
 module Ormolu.Printer.Meat.Declaration.Value
   ( p_valDecl
+  , p_pat
   )
 where
 
@@ -15,13 +16,34 @@ import Data.List (sortOn)
 import GHC
 import Ormolu.Printer.Combinators
 import Ormolu.Printer.Meat.Common
-import Ormolu.Printer.Meat.Declaration.Pat
 import Ormolu.Printer.Meat.Declaration.Signature
 import Ormolu.Printer.Meat.Type
 import Ormolu.Utils
 import Outputable (Outputable (..))
 import SrcLoc (isOneLineSpan)
 import qualified Data.List.NonEmpty as NE
+
+data MatchGroupStyle
+  = Function (Located RdrName)
+  | PatternBind
+  | Case
+  | Lambda
+  | LambdaCase
+
+data GroupStyle
+  = Guard
+  | MultiIf
+
+-- | Expression placement. This marks the places where expressions that
+-- implement handing forms may use them.
+
+data Placement
+  = Normal                      -- ^ Multi-line layout should cause
+                                -- insertion of a newline and indentation
+                                -- bump
+  | Hanging                     -- ^ Expressions that have hanging form
+                                -- should use it and avoid bumping one level
+                                -- of indentation
 
 p_valDecl :: HsBindLR GhcPs GhcPs -> R ()
 p_valDecl = line . p_valDecl'
@@ -41,13 +63,6 @@ p_funBind
   -> R ()
 p_funBind name mgroup =
   p_matchGroup (Function name) mgroup
-
-data MatchGroupStyle
-  = Function (Located RdrName)
-  | PatternBind
-  | Case
-  | Lambda
-  | LambdaCase
 
 p_matchGroup
   :: MatchGroupStyle
@@ -104,27 +119,18 @@ p_match style m_pats m_grhss = do
         _ -> "->"
     let combinedSpans = combineSrcSpans' $
           getGRHSSpan . unL <$> NE.fromList grhssGRHSs
-        breakpoint' =
-          if isPrefixBlock grhssGRHSs
-            then space
-            else breakpoint
         p_body = do
           newlineSep (located' (p_grhs Guard)) grhssGRHSs
           unless (GHC.isEmptyLocalBindsPR (unL grhssLocalBinds)) $ do
             newline
             line (txt "where")
             inci (located grhssLocalBinds p_hsLocalBinds)
+        placement = blockPlacement grhssGRHSs
     case style of
-      Lambda -> do
-        breakpoint'
+      Lambda -> placeHanging placement $
         switchLayout combinedSpans p_body
-      _ -> switchLayout combinedSpans . inci $ do
-        breakpoint'
-        p_body
-
-data GroupStyle
-  = Guard
-  | MultiIf
+      _ -> switchLayout combinedSpans $
+        placeHanging placement p_body
 
 p_grhs :: GroupStyle -> GRHS GhcPs (LHsExpr GhcPs) -> R ()
 p_grhs style (GRHS NoExt guards body) =
@@ -216,7 +222,7 @@ p_hsExpr = \case
   HsLamCase NoExt mgroup -> do
     txt "\\case"
     newline
-    p_matchGroup LambdaCase mgroup
+    inci (p_matchGroup LambdaCase mgroup)
   HsApp NoExt f x -> do
     located f p_hsExpr
     breakpoint
@@ -231,10 +237,8 @@ p_hsExpr = \case
     located x p_hsExpr
     space
     located op p_hsExpr
-    if isPrefixBlockExpr (unL y)
-      then space
-      else breakpoint
-    inci (located y p_hsExpr)
+    placeHanging (exprPlacement (unL y)) $
+      located y p_hsExpr
   NegApp NoExt e _ -> do
     txt "-"
     located e p_hsExpr
@@ -279,20 +283,18 @@ p_hsExpr = \case
     located e p_hsExpr
     txt " of"
     breakpoint
-    p_matchGroup Case mgroup
+    inci (p_matchGroup Case mgroup)
   HsIf NoExt _ if' then' else' -> do
     txt "if "
     located if' p_hsExpr
     breakpoint
     txt "then"
-    located then' $ \x -> do
-      breakpoint
-      inci (p_hsExpr x)
+    located then' $ \x ->
+      placeHanging (exprPlacement x) (p_hsExpr x)
     breakpoint
     txt "else"
-    located else' $ \x -> do
-      breakpoint
-      inci (p_hsExpr x)
+    located else' $ \x ->
+      placeHanging (exprPlacement x) (p_hsExpr x)
   HsMultiIf NoExt guards -> do
     txt "if "
     sitcc $ newlineSep (located' (p_grhs MultiIf)) guards
@@ -308,8 +310,8 @@ p_hsExpr = \case
       MDoExpr -> txt "mdo"
       _ -> notImplemented "certain kinds of do notation"
     newline
-    located es (newlineSep (located' p_stmt))
-  ExplicitList _ _ xs -> do
+    inci $ located es (newlineSep (located' (sitcc . p_stmt)))
+  ExplicitList _ _ xs ->
     brackets $ velt (withSep comma (located' p_hsExpr) xs)
   RecordCon {..} -> do
     located rcon_con_name atom
@@ -320,15 +322,15 @@ p_hsExpr = \case
           case rec_dotdot of
             Just {} -> [txt ".."]
             Nothing -> []
-    inci $ braces $ velt (withSep comma id (fields <> dotdot))
+    inci $ braces $ velt (withSep comma id (fields <> dotdot))
   RecordUpd {..} -> do
     located rupd_expr p_hsExpr
     breakpoint
-    inci $ braces $ velt (withSep comma (located' p_hsRecField) rupd_flds)
+    inci $ braces $ velt (withSep comma (located' p_hsRecField) rupd_flds)
   ExprWithTySig affix x -> do
     located x p_hsExpr
     breakpoint
-    inci $ do
+    inci $ do
       txt ":: "
       let HsWC {..} = affix
           HsIB {..} = hswc_body
@@ -340,11 +342,11 @@ p_hsExpr = \case
         located from p_hsExpr
         breakpoint'
         txt ".."
-      FromThen from next -> brackets $ do
+      FromThen from next -> brackets $ do
         velt (withSep comma (located' p_hsExpr) [from, next])
         breakpoint'
         txt ".."
-      FromTo from to -> brackets $ do
+      FromTo from to -> brackets $ do
         located from p_hsExpr
         breakpoint'
         txt ".. "
@@ -426,6 +428,78 @@ p_patSynDetails = \case
     velt' (p_rdrName . recordPatSynPatVar <$> xs)
   InfixCon _ _ -> notImplemented "InfixCon"
 
+p_pat :: Pat GhcPs -> R ()
+p_pat = \case
+  WildPat NoExt -> txt "_"
+  VarPat NoExt name -> p_rdrName name
+  LazyPat NoExt pat -> do
+    txt "~"
+    located pat p_pat
+  AsPat NoExt name pat -> do
+    p_rdrName name
+    txt "@"
+    located pat p_pat
+  ParPat NoExt pat ->
+    located pat (parens . p_pat)
+  BangPat NoExt pat -> do
+    txt "!"
+    located pat p_pat
+  ListPat NoExt pats -> do
+    brackets $ velt (withSep comma (located' p_pat) pats)
+  TuplePat NoExt pats boxing -> do
+    let f =
+          case boxing of
+            Boxed -> parens
+            Unboxed -> parensHash
+    f $ velt (withSep comma (located' p_pat) pats)
+  SumPat NoExt pat _ _ -> do
+    -- XXX I'm not sure about this one.
+    located pat p_pat
+  ConPatIn pat details ->
+    case details of
+      PrefixCon xs -> sitcc $ do
+        p_rdrName pat
+        unless (null xs) $ do
+          breakpoint
+          inci $ velt' (located' p_pat <$> xs)
+      RecCon (HsRecFields fields dotdot) -> do
+        p_rdrName pat
+        breakpoint
+        let f = \case
+              Nothing -> txt ".."
+              Just x -> located x p_pat_hsRecField
+        inci . braces . velt . withSep comma f $ case dotdot of
+          Nothing -> Just <$> fields
+          Just n -> (Just <$> take n fields) ++ [Nothing]
+      InfixCon x y -> do
+        located x p_pat
+        space
+        p_rdrName pat
+        breakpoint
+        inci (located y p_pat)
+  ConPatOut {} -> notImplemented "ConPatOut"
+  ViewPat NoExt expr pat -> sitcc $ do
+    located expr p_hsExpr
+    txt " ->"
+    breakpoint
+    inci (located pat p_pat)
+  SplicePat {} -> notImplemented "SplicePat"
+  LitPat NoExt p -> atom p
+  NPat NoExt v _ _ -> located v (atom . ol_val)
+  NPlusKPat {} -> notImplemented "NPlusKPat"
+  SigPat {} -> notImplemented "SigPat"
+  CoPat {} -> notImplemented "CoPat"
+  XPat NoExt -> notImplemented "XPat"
+
+p_pat_hsRecField :: HsRecField' (FieldOcc GhcPs) (LPat GhcPs) -> R ()
+p_pat_hsRecField HsRecField {..} = do
+  located hsRecFieldLbl $ \x ->
+    p_rdrName (rdrNameFieldOcc x)
+  unless hsRecPun $ do
+    txt " ="
+    breakpoint
+    inci (located hsRecFieldArg p_pat)
+
 ----------------------------------------------------------------------------
 -- Helpers
 
@@ -433,21 +507,33 @@ getGRHSSpan :: GRHS GhcPs (LHsExpr GhcPs) -> SrcSpan
 getGRHSSpan (GRHS NoExt _ body) = getSpan body
 getGRHSSpan (XGRHS NoExt) = notImplemented "XGRHS"
 
--- | Check the body is such a thing that prints a short prefix and then the
--- rest goes after a newline. In that case we can leave the prefix on
--- current line. Examples of such things are: lambdas, do-blocks, and lambda
--- case expressions.
+-- | Place a thing that may have a hanging form. This function handles how
+-- to separate it from preceding expressions and whether to bump indentation
+-- depending on what sort of expression we have.
 
-isPrefixBlock :: [LGRHS GhcPs (LHsExpr GhcPs)] -> Bool
-isPrefixBlock [(L _ (GRHS NoExt _ (L _ e)))] = isPrefixBlockExpr e
-isPrefixBlock _ = False
+placeHanging :: Placement -> R () -> R ()
+placeHanging placement m = do
+  case placement of
+    Hanging -> do
+      space
+      m
+    Normal -> do
+      breakpoint
+      inci m
 
--- | Similar to 'isPrefixBlock', but just for checking 'HsExpr' directly.
+-- | Check if given block contains single expression which has a hanging
+-- form.
 
-isPrefixBlockExpr :: HsExpr GhcPs -> Bool
-isPrefixBlockExpr = \case
-  HsLam NoExt _ -> True
-  HsCase NoExt _ _ -> True
-  HsDo NoExt _ _ -> True
-  HsLamCase NoExt _ -> True
-  _ -> False
+blockPlacement :: [LGRHS GhcPs (LHsExpr GhcPs)] -> Placement
+blockPlacement [(L _ (GRHS NoExt _ (L _ e)))] = exprPlacement e
+blockPlacement _ = Normal
+
+-- | Check if given expression has hinging a form.
+
+exprPlacement :: HsExpr GhcPs -> Placement
+exprPlacement = \case
+  HsLam NoExt _ -> Hanging
+  HsCase NoExt _ _ -> Hanging
+  HsDo NoExt _ _ -> Hanging
+  HsLamCase NoExt _ -> Hanging
+  _ -> Normal
